@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Timestripe</string>
+    <string name="nav_day">Days</string>
+    <string name="nav_week">Weeks</string>
+    <string name="nav_month">Months</string>
+    <string name="nav_year">Years</string>
+    <string name="nav_life">Life</string>
 </resources>
