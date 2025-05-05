@@ -30,10 +30,10 @@ import my.way.timestripe.ui.theme.TimestripeTheme
 
 @Composable
 fun TaskNavigationBar(
-    selectedMode: TaskNavigationMode,
-    enabledModes: Set<TaskNavigationMode>,
+    selectedMode: TaskHorizon,
+    enabledModes: Set<TaskHorizon>,
     modifier: Modifier = Modifier,
-    onModeSelected: (TaskNavigationMode) -> Unit
+    onModeSelected: (TaskHorizon) -> Unit
 ) {
     Row(
         modifier = modifier
@@ -51,11 +51,11 @@ fun TaskNavigationBar(
     ) {
         enabledModes.forEach { mode ->
             val label = when (mode) {
-                TaskNavigationMode.DAY -> stringResource(R.string.nav_day)
-                TaskNavigationMode.WEEK -> stringResource(R.string.nav_week)
-                TaskNavigationMode.MONTH -> stringResource(R.string.nav_month)
-                TaskNavigationMode.YEAR -> stringResource(R.string.nav_year)
-                TaskNavigationMode.LIFE -> stringResource(R.string.nav_life)
+                TaskHorizon.DAY -> stringResource(R.string.nav_day)
+                TaskHorizon.WEEK -> stringResource(R.string.nav_week)
+                TaskHorizon.MONTH -> stringResource(R.string.nav_month)
+                TaskHorizon.YEAR -> stringResource(R.string.nav_year)
+                TaskHorizon.LIFE -> stringResource(R.string.nav_life)
             }
 
             val interactionSource = remember { MutableInteractionSource() }
@@ -86,11 +86,11 @@ fun TaskNavigationBar(
 @Preview
 @Composable
 fun TaskNavigationBarPreview() {
-    var selectedMode by remember { mutableStateOf(TaskNavigationMode.DAY) }
+    var selectedMode by remember { mutableStateOf(TaskHorizon.DAY) }
     TimestripeTheme {
         TaskNavigationBar(
             selectedMode = selectedMode,
-            enabledModes = TaskNavigationMode.entries.toSet(),
+            enabledModes = TaskHorizon.entries.toSet(),
             modifier = Modifier,
             onModeSelected = {
                 selectedMode = it
@@ -99,6 +99,6 @@ fun TaskNavigationBarPreview() {
     }
 }
 
-enum class TaskNavigationMode {
+enum class TaskHorizon {
     DAY, WEEK, MONTH, YEAR, LIFE
 }

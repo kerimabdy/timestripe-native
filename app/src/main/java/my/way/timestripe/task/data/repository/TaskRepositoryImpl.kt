@@ -6,6 +6,7 @@ import my.way.timestripe.task.data.local.dao.TaskDao
 import my.way.timestripe.task.data.local.entity.TaskEntity
 import my.way.timestripe.task.domain.model.Task
 import my.way.timestripe.task.domain.repository.TaskRepository
+import java.time.LocalDate
 
 class TaskRepositoryImpl(
     private val taskDao: TaskDao
@@ -37,6 +38,26 @@ class TaskRepositoryImpl(
         taskDao.deleteTaskById(taskId)
     }
 
+    override fun getTasksByDate(date: LocalDate): Flow<List<Task>> {
+        return taskDao.getTasksByDate(date).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+
+    override fun getTasksForHorizon(baseDate: LocalDate, offset: Long): Flow<List<Task>> {
+        val encodedDate = baseDate.plusDays(offset)
+        return taskDao.getTasksForDate(encodedDate).map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getTasksForLife(): Flow<List<Task>> {
+        return taskDao.getTasksWithNullDate().map { entities ->
+            entities.map { it.toDomain() }
+        }
+    }
+
     private fun TaskEntity.toDomain(): Task {
         return Task(
             id = id,
@@ -60,4 +81,5 @@ class TaskRepositoryImpl(
             updatedAt = updatedAt
         )
     }
+
 } 

@@ -56,15 +56,24 @@ fun NewTaskInputItem(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+
+    var shouldKeepFocus by remember { mutableStateOf(false) }
     
-    LaunchedEffect(shouldFocus) {
-        if (shouldFocus) {
+    
+    // LaunchedEffect(shouldFocus) {
+    //     if (shouldFocus) {
+    //         focusRequester.requestFocus()
+    //     }
+    // }
+    
+    // LaunchedEffect(isFocused) {
+    //     onShouldFocusChanged(isFocused)
+    // }
+
+    LaunchedEffect(shouldKeepFocus) {
+        if (shouldKeepFocus) {
             focusRequester.requestFocus()
         }
-    }
-    
-    LaunchedEffect(isFocused) {
-        onShouldFocusChanged(isFocused)
     }
 
     BasicTextField(
@@ -86,6 +95,7 @@ fun NewTaskInputItem(
             onNext = {
                 if (newTask.title.isNotBlank()) {
                     onSaveNewTask()
+                    shouldKeepFocus = false
                 } else {
                     focusManager.clearFocus()
                 }
