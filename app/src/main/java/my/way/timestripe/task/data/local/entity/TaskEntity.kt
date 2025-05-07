@@ -12,6 +12,7 @@ data class TaskEntity(
     val title: String,
     val description: String?,
     val dueDate: LocalDate?,
+    val column: Int = 1, // 1=Day, 2=Week, 3=Month, 4=Year, 5=Life
     val isCompleted: Boolean = false,
     val createdAt: LocalDateTime = LocalDateTime.now(),
     val updatedAt: LocalDateTime = LocalDateTime.now()

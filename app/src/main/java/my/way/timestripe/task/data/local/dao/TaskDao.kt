@@ -28,9 +28,9 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun deleteTaskById(taskId: Long)
 
-    @Query("SELECT * FROM tasks WHERE dueDate = :date ORDER BY createdAt DESC")
-    fun getTasksForDate(date: LocalDate): Flow<List<TaskEntity>>
+    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt DESC")
+    fun getTasksByDateAndColumn(baseDate: LocalDate, column: Int): Flow<List<TaskEntity>>
 
-    @Query("SELECT * FROM tasks WHERE dueDate IS NULL ORDER BY createdAt DESC")
-    fun getTasksWithNullDate(): Flow<List<TaskEntity>>
+    @Query("SELECT * FROM tasks WHERE column = 5 ORDER BY createdAt DESC")
+    fun getLifeTasks(): Flow<List<TaskEntity>>
 } 

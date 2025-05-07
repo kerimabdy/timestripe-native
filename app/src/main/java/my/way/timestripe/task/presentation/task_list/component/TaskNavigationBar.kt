@@ -30,10 +30,10 @@ import my.way.timestripe.ui.theme.TimestripeTheme
 
 @Composable
 fun TaskNavigationBar(
-    selectedMode: TaskHorizon,
-    enabledModes: Set<TaskHorizon>,
+    selectedColumn: Int,
+    enabledColumns: Set<Int>,
     modifier: Modifier = Modifier,
-    onModeSelected: (TaskHorizon) -> Unit
+    onColumnSelected: (Int) -> Unit
 ) {
     Row(
         modifier = modifier
@@ -49,13 +49,14 @@ fun TaskNavigationBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceAround
     ) {
-        enabledModes.forEach { mode ->
-            val label = when (mode) {
-                TaskHorizon.DAY -> stringResource(R.string.nav_day)
-                TaskHorizon.WEEK -> stringResource(R.string.nav_week)
-                TaskHorizon.MONTH -> stringResource(R.string.nav_month)
-                TaskHorizon.YEAR -> stringResource(R.string.nav_year)
-                TaskHorizon.LIFE -> stringResource(R.string.nav_life)
+        enabledColumns.forEach { column ->
+            val label = when (column) {
+                1 -> stringResource(R.string.nav_day)
+                2 -> stringResource(R.string.nav_week)
+                3 -> stringResource(R.string.nav_month)
+                4 -> stringResource(R.string.nav_year)
+                5 -> stringResource(R.string.nav_life)
+                else -> throw IllegalArgumentException("Invalid column: $column")
             }
 
             val interactionSource = remember { MutableInteractionSource() }
@@ -63,10 +64,10 @@ fun TaskNavigationBar(
             val alpha by animateFloatAsState(if (isPressed) 0.5f else 1f, label = "nav_alpha")
             Text(
                 text = label,
-                color = if (mode == selectedMode) TimestripeTheme.colorScheme.labelPrimary else TimestripeTheme.colorScheme.labelTertiary,
+                color = if (column == selectedColumn) TimestripeTheme.colorScheme.labelPrimary else TimestripeTheme.colorScheme.labelTertiary,
 //                fontWeight = if (mode == selectedMode) FontWeight.Bold else FontWeight.Normal,
                 style = TimestripeTheme.typography.body.copy(
-                    fontFamily = if (mode == selectedMode) InterFontFamily.Bold else InterFontFamily.Normal
+                    fontFamily = if (column == selectedColumn) InterFontFamily.Bold else InterFontFamily.Normal
                 ),
                 modifier = Modifier
                     .padding(top = 18.dp, bottom = 24.dp)
@@ -74,7 +75,7 @@ fun TaskNavigationBar(
                     .clickable(
                         interactionSource = interactionSource,
                         indication = null,
-                        onClick = { onModeSelected(mode) },
+                        onClick = { onColumnSelected(column) },
                         onClickLabel = null,
                     )
                     .graphicsLayer { this.alpha = alpha }
@@ -86,19 +87,15 @@ fun TaskNavigationBar(
 @Preview
 @Composable
 fun TaskNavigationBarPreview() {
-    var selectedMode by remember { mutableStateOf(TaskHorizon.DAY) }
+    var selectedColumn by remember { mutableStateOf(1) }
     TimestripeTheme {
         TaskNavigationBar(
-            selectedMode = selectedMode,
-            enabledModes = TaskHorizon.entries.toSet(),
+            selectedColumn = selectedColumn,
+            enabledColumns = setOf(1, 2, 3, 4, 5),
             modifier = Modifier,
-            onModeSelected = {
-                selectedMode = it
+            onColumnSelected = {
+                selectedColumn = it
             }
         )
     }
-}
-
-enum class TaskHorizon {
-    DAY, WEEK, MONTH, YEAR, LIFE
 }

@@ -45,15 +45,14 @@ class TaskRepositoryImpl(
     }
 
 
-    override fun getTasksForHorizon(baseDate: LocalDate, offset: Long): Flow<List<Task>> {
-        val encodedDate = baseDate.plusDays(offset)
-        return taskDao.getTasksForDate(encodedDate).map { entities ->
+    override fun getTasksByDateAndColumn(baseDate: LocalDate, column: Int): Flow<List<Task>> {
+        return taskDao.getTasksByDateAndColumn(baseDate, column).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    override fun getTasksForLife(): Flow<List<Task>> {
-        return taskDao.getTasksWithNullDate().map { entities ->
+    override fun getLifeTasks(): Flow<List<Task>> {
+        return taskDao.getLifeTasks().map { entities ->
             entities.map { it.toDomain() }
         }
     }
@@ -64,6 +63,7 @@ class TaskRepositoryImpl(
             title = title,
             description = description,
             dueDate = dueDate,
+            column = column,
             isCompleted = isCompleted,
             createdAt = createdAt,
             updatedAt = updatedAt
@@ -76,6 +76,7 @@ class TaskRepositoryImpl(
             title = title,
             description = description,
             dueDate = dueDate,
+            column = column,
             isCompleted = isCompleted,
             createdAt = createdAt,
             updatedAt = updatedAt

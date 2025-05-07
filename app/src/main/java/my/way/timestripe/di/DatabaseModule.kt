@@ -15,8 +15,10 @@ val databaseModule = module {
         Room.databaseBuilder(
             androidContext(),
             TaskDatabase::class.java,
-                DATABASE_NAME
-        ).build()
+            DATABASE_NAME
+        )
+        .addMigrations(TaskDatabase.MIGRATION_1_2)
+        .build()
     }
 
     single<TaskDao> {

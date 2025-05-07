@@ -12,6 +12,6 @@ interface TaskRepository {
     suspend fun deleteTask(task: Task)
     suspend fun deleteTaskById(taskId: Long)
     fun getTasksByDate(date: LocalDate): Flow<List<Task>>
-    fun getTasksForHorizon(baseDate: LocalDate, offset: Long): Flow<List<Task>>
-    fun getTasksForLife(): Flow<List<Task>>
+    fun getTasksByDateAndColumn(baseDate: LocalDate, column: Int): Flow<List<Task>>
+    fun getLifeTasks(): Flow<List<Task>>
 } 
