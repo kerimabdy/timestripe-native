@@ -23,31 +23,54 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import my.way.timestripe.task.domain.model.Task
+import my.way.timestripe.task.presentation.task_list.component.CalendarPager
 import my.way.timestripe.task.presentation.task_list.component.NewTaskInputItem
-import my.way.timestripe.task.presentation.task_list.component.TaskHorizon
 import my.way.timestripe.task.presentation.task_list.component.TaskListItem
 import my.way.timestripe.task.presentation.task_list.component.TaskNavigationBar
 import my.way.timestripe.ui.theme.InterFontFamily
 import my.way.timestripe.ui.theme.TimestripeTheme
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
+import java.time.temporal.WeekFields
+import java.util.Locale
+
+// Column constants
+private const val COLUMN_DAY = 1
+private const val COLUMN_WEEK = 2
+private const val COLUMN_MONTH = 3
+private const val COLUMN_YEAR = 4
+private const val COLUMN_LIFE = 5
+
+private const val VIRTUAL_PAGE_COUNT = Int.MAX_VALUE
+private const val START_INDEX = VIRTUAL_PAGE_COUNT / 2
+
+fun getDateForPage(page: Int, startIndex: Int, referenceDate: LocalDate, column: Int): LocalDate {
+    // Calculate the difference in days between the current page and the start index
+    val dayOffset = when (column) {
+        COLUMN_DAY -> page - startIndex
+        COLUMN_WEEK -> (page - startIndex) * 7 // Multiply by 7 to get week offset in days
+        COLUMN_MONTH -> (page - startIndex) * 30 // Multiply by 30 to get month offset in days
+        COLUMN_YEAR -> (page - startIndex) * 365 // Multiply by 365 to get year offset in days
+        else -> 0
+    }
+
+
+    // Add the offset to the reference date (today)
+    return referenceDate.plusDays(dayOffset.toLong())
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -56,78 +79,29 @@ fun TaskListScreen(
     actions: (TaskListActions) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // If date range is empty, initialize the pager
-    LaunchedEffect(state.visibleDateRange.isEmpty()) {
-        if (state.visibleDateRange.isEmpty()) {
-            actions(TaskListActions.InitializePager())
-        }
-    }
-    
-    // Create pager state or exit early if we don't have dates yet
-    val visibleDates = state.visibleDateRange
-    if (visibleDates.isEmpty()) return
-    
-    val pagerState = rememberPagerState(
-        initialPage = state.currentPage,
-        pageCount = { visibleDates.size }
-    )
-    
-    // Track page changes and update the view model
-    val coroutineScope = rememberCoroutineScope()
-    
-    // Sync pager with view model
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }
-            .collectLatest { page ->
-                if (page != state.currentPage) {
-                    actions(TaskListActions.PageChanged(page))
-                }
-            }
-    }
-    
-    // If we need to regenerate pages, do it
-    LaunchedEffect(state.shouldRegeneratePages) {
-        if (state.shouldRegeneratePages) {
-            actions(TaskListActions.RegeneratePages)
-        }
-    }
-//
-//    // When visible date range changes, update pager position
-//    LaunchedEffect(state.visibleDateRange, state.currentPage) {
-//        if (pagerState.currentPage != state.currentPage) {
-//            pagerState.scrollToPage(state.currentPage)
-//        }
-//    }
-//
-//    // When selected horizon changes, ensure pager is initialized
-//    LaunchedEffect(state.selectedHorizon) {
-//        actions(TaskListActions.InitializePager())
-//    }
-    
-    // Format dates for display
-    val formattedDate by remember(state.selectedDate, state.selectedHorizon) {
-        derivedStateOf {
-            getFormattedDateForDisplay(state.selectedDate, state.selectedHorizon)
-        }
-    }
 
-    val selectedDate = state.selectedDate ?: LocalDate.now()
-    
     Scaffold(
         containerColor = TimestripeTheme.colorScheme.secondaryBackground,
         contentColor = TimestripeTheme.colorScheme.labelPrimary,
-        topBar =  {
-            TaskListAppBar(selectedDate, state.selectedHorizon)
+        topBar = {
+            TaskListAppBar(state.selectedDate, state.selectedColumn)
         },
         bottomBar = {
+            val coroutineScope = rememberCoroutineScope()
             TaskNavigationBar(
-                selectedMode = state.selectedHorizon,
-                enabledModes = state.enabledHorizons,
-                onModeSelected = { actions(TaskListActions.ChangeHorizon(it)) }
+                selectedColumn = state.selectedColumn,
+                enabledColumns = state.enabledColumns,
+                onColumnSelected = {
+                    coroutineScope.launch {
+                        actions(TaskListActions.ChangeColumn(it))
+                    }
+                }
             )
         },
         floatingActionButton = {
-            AddTaskFloatingActionButton(selectedDate, { actions(TaskListActions.AddTask(it)) })
+            AddTaskFloatingActionButton(
+                state.selectedDate,
+                { actions(TaskListActions.AddTask(it)) })
         }
     ) { innerPadding ->
         // Horizontal pager for date navigation
@@ -136,7 +110,7 @@ fun TaskListScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            if (state.selectedHorizon == TaskHorizon.LIFE) {
+            if (state.selectedColumn == COLUMN_LIFE) {
                 // For LIFE view, just show tasks without paging
                 TaskList(
                     tasks = state.tasks,
@@ -153,63 +127,91 @@ fun TaskListScreen(
                     modifier = Modifier.fillMaxSize()
                 )
             } else {
-                // For time-based horizons, use horizontal pager
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    // Show task list for the current page
-                    TaskList(
-                        tasks = state.tasks,
-                        newTask = state.newTask,
-                        onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
-                        onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
-                        onNewTaskUpdate = { actions(TaskListActions.UpdateNewTask(it)) },
-                        onNewTaskCheckToggle = { actions(TaskListActions.ToggleNewTaskCompleted) },
-                        onSaveNewTask = { actions(TaskListActions.SaveNewTask) },
-                        onDeleteTask = { actions(TaskListActions.DeleteTask(it)) },
-                        isNewTaskFocused = state.isNewTaskShouldFocus,
-                        onNewTaskFocusChanged = { actions(TaskListActions.SetNewTaskShouldFocus(it)) },
-                        selectedDate = state.selectedDate,
-                        modifier = Modifier.fillMaxSize()
-                    )
+                // For time-based columns, use horizontal pager
+
+                val getNextDate = when (state.selectedColumn) {
+                    COLUMN_DAY -> { date: LocalDate -> date.plusDays(1) }
+                    COLUMN_WEEK -> { date: LocalDate -> date.plusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+                    COLUMN_MONTH -> { date: LocalDate -> date.plusMonths(1).withDayOfMonth(1) }
+                    COLUMN_YEAR -> { date: LocalDate -> date.plusYears(1).withDayOfYear(1) }
+                    else -> { date: LocalDate -> date }
+                }   
+                val getPreviousDate = when (state.selectedColumn) {
+                    COLUMN_DAY -> { date: LocalDate -> date.minusDays(1) }
+                    COLUMN_WEEK -> { date: LocalDate  -> date.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+                    COLUMN_MONTH -> { date: LocalDate -> date.minusMonths(1).withDayOfMonth(1) }
+                    COLUMN_YEAR -> { date: LocalDate -> date.minusYears(1).withDayOfYear(1) }
+                    else -> { date: LocalDate -> date }
                 }
+
+                CalendarPager(
+                    currentDate = state.selectedDate,
+                    getNextDate = getNextDate,
+                    getPreviousDate = getPreviousDate,
+                    onPageChanged = { actions(TaskListActions.SetSelectedDate(it)) },
+                    itemContent = { date ->
+                        TaskList(
+                            tasks = state.tasks,
+                            newTask = state.newTask,
+                            onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
+                            onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
+                            onNewTaskUpdate = { actions(TaskListActions.UpdateNewTask(it)) },
+                            onNewTaskCheckToggle = { actions(TaskListActions.ToggleNewTaskCompleted) },
+                            onSaveNewTask = { actions(TaskListActions.SaveNewTask) },
+                            onDeleteTask = { actions(TaskListActions.DeleteTask(it)) },
+                            isNewTaskFocused = state.isNewTaskShouldFocus,
+                            onNewTaskFocusChanged = {
+                                actions(
+                                    TaskListActions.SetNewTaskShouldFocus(
+                                        it
+                                    )
+                                )
+                            },
+                            selectedDate = date,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                )
             }
         }
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TaskListAppBar(
     selectedDate: LocalDate?,
-    selectedHorizon: TaskHorizon
+    selectedColumn: Int
 ) {
-    val formattedDate by remember(selectedDate, selectedHorizon) {
+    val formattedDate by remember(selectedDate, selectedColumn) {
         derivedStateOf {
-            getFormattedDateForDisplay(selectedDate, selectedHorizon)
+            getFormattedDateForDisplay(selectedDate, selectedColumn)
         }
     }
-    
+
     Column {
         CenterAlignedTopAppBar(
             title = {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Primary date format based on horizon
+                    // Primary date format based on column type
                     Text(
                         text = formattedDate.first,
                         style = TimestripeTheme.typography.body.copy(
-                            fontFamily = InterFontFamily.SemiBold
-                        )
+                            fontFamily = InterFontFamily.Medium
+                        ),
+                        color = TimestripeTheme.colorScheme.labelPrimary
                     )
-                    
-                    // Secondary date info if applicable
+
+                    // Secondary date format if applicable
                     if (formattedDate.second.isNotEmpty()) {
                         Text(
                             text = formattedDate.second,
-                            style = TimestripeTheme.typography.body,
+                            style = TimestripeTheme.typography.body.copy(
+                                fontFamily = InterFontFamily.Medium
+                            ),
                             color = TimestripeTheme.colorScheme.labelSecondary
                         )
                     }
@@ -218,62 +220,60 @@ private fun TaskListAppBar(
             colors = TopAppBarColors(
                 containerColor = TimestripeTheme.colorScheme.secondaryBackground,
                 scrolledContainerColor = TimestripeTheme.colorScheme.secondaryBackground,
-                navigationIconContentColor = TimestripeTheme.colorScheme.labelSecondary,
+                navigationIconContentColor = TimestripeTheme.colorScheme.labelPrimary,
                 titleContentColor = TimestripeTheme.colorScheme.labelPrimary,
-                actionIconContentColor = TimestripeTheme.colorScheme.labelSecondary,
-            ),
+                actionIconContentColor = TimestripeTheme.colorScheme.labelPrimary
+            )
         )
-
         HorizontalDivider(
-            thickness = .33.dp,
-            color = TimestripeTheme.colorScheme.separatorOpaque
+            color = TimestripeTheme.colorScheme.gray5
         )
     }
 }
 
-// Regular function (not composable) to format dates based on the selected horizon
-private fun getFormattedDateForDisplay(date: LocalDate?, horizon: TaskHorizon): Pair<String, String> {
-    // For LIFE or null date, return placeholder
-    if (horizon == TaskHorizon.LIFE || date == null) {
+/**
+ * Returns a formatted date string based on the column type
+ */
+fun getFormattedDateForDisplay(date: LocalDate?, column: Int): Pair<String, String> {
+    // For LIFE or null date, return Life
+    if (column == COLUMN_LIFE || date == null) {
         return Pair("Life", "")
     }
-    
-    return when (horizon) {
-        TaskHorizon.DAY -> {
-            val primaryFormat = DateTimeFormatter.ofPattern("EEEE")
-            val secondaryFormat = DateTimeFormatter.ofPattern("MMM d")
-            Pair(
-                date.format(primaryFormat),
-                date.format(secondaryFormat)
-            )
+
+    return when (column) {
+        COLUMN_DAY -> {
+            val dayOfWeek = date.format(DateTimeFormatter.ofPattern("EEEE"))
+            val dateFormat = date.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
+            Pair(dayOfWeek, dateFormat)
         }
-        TaskHorizon.WEEK -> {
+
+        COLUMN_WEEK -> {
             val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             val weekEnd = weekStart.plusDays(6)
-            val primaryFormat = DateTimeFormatter.ofPattern("'Week' w")
-            val secondaryStartFormat = DateTimeFormatter.ofPattern("MMM d")
-            val secondaryEndFormat = DateTimeFormatter.ofPattern("MMM d")
-            Pair(
-                date.format(primaryFormat),
-                "${weekStart.format(secondaryStartFormat)} - ${weekEnd.format(secondaryEndFormat)}"
-            )
+
+            val startMonth = weekStart.format(DateTimeFormatter.ofPattern("MMM"))
+            val endMonth = weekEnd.format(DateTimeFormatter.ofPattern("MMM"))
+
+            val weekFormatted = if (startMonth == endMonth) {
+                "$startMonth ${weekStart.dayOfMonth} - ${weekEnd.dayOfMonth}, ${weekStart.year}"
+            } else {
+                "$startMonth ${weekStart.dayOfMonth} - $endMonth ${weekEnd.dayOfMonth}, ${weekStart.year}"
+            }
+            val weekNumber = date.get(WeekFields.of(Locale.getDefault()).weekOfYear())
+            Pair("Week $weekNumber", weekFormatted)
         }
-        TaskHorizon.MONTH -> {
-            val primaryFormat = DateTimeFormatter.ofPattern("MMMM")
-            val secondaryFormat = DateTimeFormatter.ofPattern("yyyy")
-            Pair(
-                date.format(primaryFormat),
-                date.format(secondaryFormat)
-            )
+
+        COLUMN_MONTH -> {
+            val monthYear = date.format(DateTimeFormatter.ofPattern("MMMM yyyy"))
+            Pair(monthYear, "")
         }
-        TaskHorizon.YEAR -> {
-            val primaryFormat = DateTimeFormatter.ofPattern("yyyy")
-            Pair(
-                date.format(primaryFormat),
-                ""
-            )
+
+        COLUMN_YEAR -> {
+            val year = date.format(DateTimeFormatter.ofPattern("yyyy"))
+            Pair(year, "")
         }
-        TaskHorizon.LIFE -> Pair("Life", "") // Fallback that should not be reached
+
+        else -> Pair("Life", "") // Fallback that should not be reached
     }
 }
 

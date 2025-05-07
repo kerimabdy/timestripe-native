@@ -1,7 +1,6 @@
 package my.way.timestripe.task.presentation.task_list
 
 import my.way.timestripe.task.domain.model.Task
-import my.way.timestripe.task.presentation.task_list.component.TaskHorizon
 import java.time.LocalDate
 import androidx.compose.runtime.Immutable
 
@@ -9,9 +8,9 @@ import androidx.compose.runtime.Immutable
 data class TaskListUiState(
     val tasks: List<Task> = emptyList(),
     val newTask: Task = Task(title = ""),
-    val selectedDate: LocalDate? = LocalDate.now(),
-    val selectedHorizon: TaskHorizon = TaskHorizon.DAY,
-    val enabledHorizons: Set<TaskHorizon> = TaskHorizon.entries.toSet(),
+    val selectedDate: LocalDate = LocalDate.now(),
+    val selectedColumn: Int = 1, // 1=Day, 2=Week, 3=Month, 4=Year, 5=Life
+    val enabledColumns: Set<Int> = setOf(1, 2, 3, 4, 5),
     val isLoading: Boolean = false,
     val selectedTask: Task? = null,
     val isNewTaskShouldFocus: Boolean = false,
