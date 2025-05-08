@@ -130,6 +130,7 @@ fun NewTaskInputItem(
                 checked = newTask.isCompleted,
                 onClick = onNewTaskCheckToggle,
                 modifier = Modifier
+                    .size(20.dp)
                     .graphicsLayer {
                         this.alpha = if (isFocused) 1f else .5f
                     }

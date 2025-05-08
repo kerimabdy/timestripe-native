@@ -75,6 +75,6 @@ dependencies {
     implementation("androidx.room:room-paging:$room_version")
     ksp("androidx.room:room-compiler:$room_version")
 
-//    ksp("androidx.room:room-compiler:$room_version")
+    implementation(libs.androidx.navigation.compose)
 
 }

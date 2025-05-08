@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,7 +35,7 @@ fun TaskListItem(
             .clip(
                 RoundedCornerShape(12.dp)
             )
-            .clickable(onClick = onDelete)
+            .clickable(onClick = onClick)
             .padding(12.dp)
         ,
         verticalAlignment = Alignment.Top,
@@ -43,7 +44,7 @@ fun TaskListItem(
         CheckmarkIcon(
             checked = task.isCompleted,
             onClick = onCheck,
-            modifier = Modifier
+            modifier = Modifier.size(20.dp)
         )
         val textColor = if (task.isCompleted) {
             TimestripeTheme.colorScheme.labelTertiary

@@ -7,7 +7,7 @@ import java.time.LocalDateTime
 @Immutable
 data class Task(
     val id: Long = 0,
-    val title: String,
+    val title: String = "",
     val description: String? = null,
     val dueDate: LocalDate? = null,
     val column: Int = 1, // 1=Day, 2=Week, 3=Month, 4=Year, 5=Life

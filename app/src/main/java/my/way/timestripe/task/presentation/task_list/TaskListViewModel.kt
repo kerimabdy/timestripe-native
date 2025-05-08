@@ -50,9 +50,7 @@ class TaskListViewModel(
                 onToggleNewTaskCompleted()
             }
 
-            is TaskListActions.OpenTask -> {
-                // TODO: Handle task selection
-            }
+            is TaskListActions.NavigateToTaskDetail -> Unit
 
             is TaskListActions.ToggleTaskCompleted -> {
                 onToggleTaskCompleted(action.task)

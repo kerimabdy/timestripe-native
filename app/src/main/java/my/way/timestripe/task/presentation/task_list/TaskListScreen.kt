@@ -10,8 +10,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -76,8 +74,8 @@ fun getDateForPage(page: Int, startIndex: Int, referenceDate: LocalDate, column:
 @Composable
 fun TaskListScreen(
     state: TaskListUiState,
-    actions: (TaskListActions) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onAction: (TaskListActions) -> Unit
 ) {
 
     Scaffold(
@@ -93,7 +91,7 @@ fun TaskListScreen(
                 enabledColumns = state.enabledColumns,
                 onColumnSelected = {
                     coroutineScope.launch {
-                        actions(TaskListActions.ChangeColumn(it))
+                        onAction(TaskListActions.ChangeColumn(it))
                     }
                 }
             )
@@ -101,7 +99,7 @@ fun TaskListScreen(
         floatingActionButton = {
             AddTaskFloatingActionButton(
                 state.selectedDate,
-                { actions(TaskListActions.AddTask(it)) })
+                { onAction(TaskListActions.AddTask(it)) })
         }
     ) { innerPadding ->
         // Horizontal pager for date navigation
@@ -115,14 +113,14 @@ fun TaskListScreen(
                 TaskList(
                     tasks = state.tasksForLife,
                     newTask = state.newTask,
-                    onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
-                    onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
-                    onNewTaskUpdate = { actions(TaskListActions.UpdateNewTask(it)) },
-                    onNewTaskCheckToggle = { actions(TaskListActions.ToggleNewTaskCompleted) },
-                    onSaveNewTask = { actions(TaskListActions.SaveNewTask) },
-                    onDeleteTask = { actions(TaskListActions.DeleteTask(it)) },
+                    onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                    onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
+                    onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
+                    onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
+                    onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
+                    onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
                     isNewTaskFocused = state.isNewTaskShouldFocus,
-                    onNewTaskFocusChanged = { actions(TaskListActions.SetNewTaskShouldFocus(it)) },
+                    onNewTaskFocusChanged = { onAction(TaskListActions.SetNewTaskShouldFocus(it)) },
                     selectedDate = state.selectedDate,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -148,10 +146,10 @@ fun TaskListScreen(
                     currentDate = state.selectedDate,
                     getNextDate = getNextDate,
                     getPreviousDate = getPreviousDate,
-                    onPageChanged = { actions(TaskListActions.SetSelectedDate(it)) },
+                    onPageChanged = { onAction(TaskListActions.SetSelectedDate(it)) },
                     itemContent = { date ->
                         val normalizedDate = normalizeDate(date, state.selectedColumn)
-                        actions(TaskListActions.LoadTasksForDate(normalizedDate))
+                        onAction(TaskListActions.LoadTasksForDate(normalizedDate))
                         val tasks = when (state.selectedColumn) {
                             COLUMN_DAY -> state.tasksForDay[normalizedDate] ?: emptyList()
                             COLUMN_WEEK -> state.tasksForWeek[normalizedDate] ?: emptyList()
@@ -162,15 +160,15 @@ fun TaskListScreen(
                         TaskList(
                             tasks = tasks,
                             newTask = state.newTask,
-                            onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
-                            onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
-                            onNewTaskUpdate = { actions(TaskListActions.UpdateNewTask(it)) },
-                            onNewTaskCheckToggle = { actions(TaskListActions.ToggleNewTaskCompleted) },
-                            onSaveNewTask = { actions(TaskListActions.SaveNewTask) },
-                            onDeleteTask = { actions(TaskListActions.DeleteTask(it)) },
+                            onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                            onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
+                            onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
+                            onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
+                            onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
+                            onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
                             isNewTaskFocused = state.isNewTaskShouldFocus,
                             onNewTaskFocusChanged = {
-                                actions(
+                                onAction(
                                     TaskListActions.SetNewTaskShouldFocus(
                                         it
                                     )
