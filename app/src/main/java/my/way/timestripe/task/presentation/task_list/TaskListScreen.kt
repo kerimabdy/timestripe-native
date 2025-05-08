@@ -113,7 +113,7 @@ fun TaskListScreen(
             if (state.selectedColumn == COLUMN_LIFE) {
                 // For LIFE view, just show tasks without paging
                 TaskList(
-                    tasks = state.tasks,
+                    tasks = state.tasksForLife,
                     newTask = state.newTask,
                     onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
                     onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
@@ -150,8 +150,17 @@ fun TaskListScreen(
                     getPreviousDate = getPreviousDate,
                     onPageChanged = { actions(TaskListActions.SetSelectedDate(it)) },
                     itemContent = { date ->
+                        val normalizedDate = normalizeDate(date, state.selectedColumn)
+                        actions(TaskListActions.LoadTasksForDate(normalizedDate))
+                        val tasks = when (state.selectedColumn) {
+                            COLUMN_DAY -> state.tasksForDay[normalizedDate] ?: emptyList()
+                            COLUMN_WEEK -> state.tasksForWeek[normalizedDate] ?: emptyList()
+                            COLUMN_MONTH -> state.tasksForMonth[normalizedDate] ?: emptyList()
+                            COLUMN_YEAR -> state.tasksForYear[normalizedDate] ?: emptyList()
+                            else -> emptyList()
+                        }
                         TaskList(
-                            tasks = state.tasks,
+                            tasks = tasks,
                             newTask = state.newTask,
                             onTaskClicked = { actions(TaskListActions.OpenTask(it)) },
                             onTaskChecked = { actions(TaskListActions.ToggleTaskCompleted(it)) },
@@ -314,7 +323,7 @@ fun TaskList(
             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            items(tasks) { task ->
+            items(tasks, key = { task -> task.id }) { task ->
                 TaskListItem(
                     task = task,
                     onClick = { onTaskClicked(task) },
@@ -364,5 +373,15 @@ private fun AddTaskFloatingActionButton(
             imageVector = Icons.Filled.Add,
             contentDescription = "Add Task"
         )
+    }
+}
+
+private fun normalizeDate(date: LocalDate, column: Int): LocalDate {
+    return when (column) {
+        COLUMN_DAY -> date
+        COLUMN_WEEK -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        COLUMN_MONTH -> date.withDayOfMonth(1)
+        COLUMN_YEAR -> date.withDayOfYear(1)
+        else -> date
     }
 }

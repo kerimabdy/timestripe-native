@@ -9,6 +9,7 @@ sealed class TaskListActions {
     data object ToggleNewTaskCompleted : TaskListActions()
     data class SetSelectedDate(val date: LocalDate) : TaskListActions()
     data object LoadTasks : TaskListActions()
+    data class LoadTasksForDate(val date: LocalDate) : TaskListActions()
     data class OpenTask(val task: Task) : TaskListActions()
     data class ToggleTaskCompleted(val task: Task) : TaskListActions()
     data class DeleteTask(val task: Task) : TaskListActions()

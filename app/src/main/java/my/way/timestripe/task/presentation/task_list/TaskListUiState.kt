@@ -6,7 +6,12 @@ import androidx.compose.runtime.Immutable
 
 @Immutable
 data class TaskListUiState(
-    val tasks: List<Task> = emptyList(),
+    val tasksForDay: HashMap<LocalDate, List<Task>> = HashMap(),
+    val tasksForWeek: HashMap<LocalDate, List<Task>> = HashMap(),
+    val tasksForMonth: HashMap<LocalDate, List<Task>> = HashMap(),
+    val tasksForYear: HashMap<LocalDate, List<Task>> = HashMap(),
+    val tasksForLife: List<Task> = emptyList(),
+    
     val newTask: Task = Task(title = ""),
     val selectedDate: LocalDate = LocalDate.now(),
     val selectedColumn: Int = 1, // 1=Day, 2=Week, 3=Month, 4=Year, 5=Life

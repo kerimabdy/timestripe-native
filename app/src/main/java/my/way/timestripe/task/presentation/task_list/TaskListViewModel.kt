@@ -28,7 +28,7 @@ class TaskListViewModel(
         TaskListUiState()
     )
 
-    
+
     // Column constants
     private val COLUMN_DAY = 1
     private val COLUMN_WEEK = 2
@@ -73,7 +73,7 @@ class TaskListViewModel(
             is TaskListActions.SaveNewTask -> {
                 onSaveNewTask()
             }
-            
+
             is TaskListActions.SetNewTaskShouldFocus -> {
                 _uiState.update {
                     it.copy(isNewTaskShouldFocus = action.shouldFocus)
@@ -84,24 +84,71 @@ class TaskListViewModel(
                 onChangeColumn(action.column)
             }
 
-            
+
             is TaskListActions.SetSelectedDate -> {
                 onSetSelectedDate(action.date)
+            }
+
+            is TaskListActions.LoadTasksForDate -> {
+                onLoadTasksForDate(action.date)
             }
         }
     }
 
-    
-    
-    
-    
-    
+    private fun onLoadTasksForDate(date: LocalDate) {
+        viewModelScope.launch {
+            val tasksFlow =
+                taskRepository.getTasksByDateAndColumn(date, _uiState.value.selectedColumn)
+            tasksFlow.collect { tasks ->
+                when (_uiState.value.selectedColumn) {
+                    COLUMN_DAY -> {
+                        _uiState.update {
+                            val updatedMap = HashMap(it.tasksForDay)
+                            updatedMap[date] = tasks
+                            it.copy(tasksForDay = updatedMap)
+                        }
+                    }
+
+                    COLUMN_WEEK -> {
+                        _uiState.update {
+                            val updatedMap = HashMap(it.tasksForWeek)
+                            updatedMap[date] = tasks
+                            it.copy(tasksForWeek = updatedMap)
+                        }
+                    }
+
+                    COLUMN_MONTH -> {
+                        _uiState.update {
+                            val updatedMap = HashMap(it.tasksForMonth)
+                            updatedMap[date] = tasks
+                            it.copy(tasksForMonth = updatedMap)
+                        }
+                    }
+
+                    COLUMN_YEAR -> {
+                        _uiState.update {
+                            val updatedMap = HashMap(it.tasksForYear)
+                            updatedMap[date] = tasks
+                            it.copy(tasksForYear = updatedMap)
+                        }
+                    }
+
+                    COLUMN_LIFE -> {
+                        _uiState.update {
+                            it.copy(tasksForLife = tasks)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
     private fun onChangeColumn(newColumnType: Int) {
         _uiState.update { it.copy(selectedColumn = newColumnType) }
         // Load tasks for the new column type and date
         onLoadTasks()
     }
-
 
 
     private fun onLoadTasks() {
@@ -143,46 +190,49 @@ class TaskListViewModel(
 //            }
 //        }
     }
-    
 
-    
 
     private fun onUpdateNewTask(task: Task) {
         _uiState.update { it.copy(newTask = task) }
     }
-    
+
     private fun onToggleNewTaskCompleted() {
         val currentTask = _uiState.value.newTask
-        _uiState.update { 
+        _uiState.update {
             it.copy(
                 newTask = currentTask.copy(
                     isCompleted = !currentTask.isCompleted
                 )
-            ) 
+            )
         }
     }
-    
+
     private fun onSaveNewTask() {
         val currentTask = _uiState.value.newTask
         val columnType = _uiState.value.selectedColumn
-        
+
         // Only save if there's content in the title
         if (currentTask.title.isNotBlank()) {
             val date = when (columnType) {
                 COLUMN_DAY -> _uiState.value.selectedDate
-                COLUMN_WEEK -> _uiState.value.selectedDate?.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-                COLUMN_MONTH -> _uiState.value.selectedDate?.withDayOfMonth(1)
-                COLUMN_YEAR -> _uiState.value.selectedDate?.withDayOfYear(1)
+                COLUMN_WEEK -> _uiState.value.selectedDate.with(
+                    TemporalAdjusters.previousOrSame(
+                        DayOfWeek.MONDAY
+                    )
+                )
+
+                COLUMN_MONTH -> _uiState.value.selectedDate.withDayOfMonth(1)
+                COLUMN_YEAR -> _uiState.value.selectedDate.withDayOfYear(1)
                 else -> null
             }
-            
+
             val taskWithColumnAndDate = currentTask.copy(
                 dueDate = date,
                 column = columnType
             )
-            
+
             onAddTask(taskWithColumnAndDate)
-            
+
             // Reset the new task
             _uiState.update {
                 it.copy(
@@ -191,14 +241,14 @@ class TaskListViewModel(
             }
         }
     }
-    
+
     private fun onAddTask(task: Task) {
         viewModelScope.launch {
             taskRepository.insertTask(task)
             onLoadTasks()
         }
     }
-    
+
     private fun onToggleTaskCompleted(task: Task) {
         viewModelScope.launch {
             taskRepository.updateTask(
@@ -207,7 +257,7 @@ class TaskListViewModel(
             onLoadTasks()
         }
     }
-    
+
     private fun onDeleteTask(task: Task) {
         viewModelScope.launch {
             taskRepository.deleteTask(task)
