@@ -143,9 +143,8 @@ class TaskListViewModel(
 
 
     private fun onChangeColumn(newColumnType: Int) {
-        _uiState.update { it.copy(selectedColumn = newColumnType) }
-        // Load tasks for the new column type and date
-        onLoadTasks()
+        if(_uiState.value.selectedColumn == newColumnType) onSetSelectedDate(LocalDate.now())
+        else _uiState.update { it.copy(selectedColumn = newColumnType) }
     }
 
 
