@@ -1,5 +1,8 @@
 package my.way.timestripe.task.presentation.task_list
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +24,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -36,6 +40,8 @@ import my.way.timestripe.task.presentation.task_list.component.CalendarPager
 import my.way.timestripe.task.presentation.task_list.component.NewTaskInputItem
 import my.way.timestripe.task.presentation.task_list.component.TaskListItem
 import my.way.timestripe.task.presentation.task_list.component.TaskNavigationBar
+import my.way.timestripe.task.presentation.util.LocalAnimatedVisibilityScope
+import my.way.timestripe.task.presentation.util.LocalSharedTransitionScope
 import my.way.timestripe.ui.theme.InterFontFamily
 import my.way.timestripe.ui.theme.TimestripeTheme
 import java.time.DayOfWeek
@@ -44,6 +50,7 @@ import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.time.temporal.WeekFields
 import java.util.Locale
+
 
 // Column constants
 private const val COLUMN_DAY = 1
@@ -70,15 +77,22 @@ fun getDateForPage(page: Int, startIndex: Int, referenceDate: LocalDate, column:
     return referenceDate.plusDays(dayOffset.toLong())
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun TaskListScreen(
     state: TaskListUiState,
     modifier: Modifier = Modifier,
-    onAction: (TaskListActions) -> Unit
+    onAction: (TaskListActions) -> Unit,
+    sharedTransitionScope: SharedTransitionScope,
+    animatedContentScope: AnimatedContentScope
 ) {
 
-    Scaffold(
+    CompositionLocalProvider(
+        LocalSharedTransitionScope provides sharedTransitionScope,
+        LocalAnimatedVisibilityScope provides animatedContentScope
+    ) {
+        Scaffold(
+        modifier = modifier,
         containerColor = TimestripeTheme.colorScheme.secondaryBackground,
         contentColor = TimestripeTheme.colorScheme.labelPrimary,
         topBar = {
@@ -104,7 +118,7 @@ fun TaskListScreen(
     ) { innerPadding ->
         // Horizontal pager for date navigation
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
@@ -133,7 +147,7 @@ fun TaskListScreen(
                     COLUMN_MONTH -> { date: LocalDate -> date.plusMonths(1).withDayOfMonth(1) }
                     COLUMN_YEAR -> { date: LocalDate -> date.plusYears(1).withDayOfYear(1) }
                     else -> { date: LocalDate -> date }
-                }   
+                }
                 val getPreviousDate = when (state.selectedColumn) {
                     COLUMN_DAY -> { date: LocalDate -> date.minusDays(1) }
                     COLUMN_WEEK -> { date: LocalDate  -> date.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
@@ -181,6 +195,7 @@ fun TaskListScreen(
                 )
             }
         }
+    }
     }
 }
 

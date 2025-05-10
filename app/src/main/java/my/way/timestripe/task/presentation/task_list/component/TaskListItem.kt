@@ -1,5 +1,9 @@
 package my.way.timestripe.task.presentation.task_list.component
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -21,6 +25,22 @@ import my.way.timestripe.task.domain.model.Task
 import my.way.timestripe.ui.theme.TimestripeTheme
 import java.time.LocalDate
 import java.time.LocalDateTime
+import my.way.timestripe.task.presentation.util.LocalAnimatedVisibilityScope
+import my.way.timestripe.task.presentation.util.LocalSharedTransitionScope
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.SharedTransitionScope.PlaceHolderSize.Companion.animatedSize
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentHeight
+
+
+@OptIn(ExperimentalSharedTransitionApi::class)
 
 @Composable
 fun TaskListItem(
@@ -30,33 +50,66 @@ fun TaskListItem(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier
-            .clip(
-                RoundedCornerShape(12.dp)
+    val animatedVisibilityScope = LocalAnimatedVisibilityScope.current
+    val sharedTransitionScope = LocalSharedTransitionScope.current
+    with(sharedTransitionScope) {
+        Row(
+            modifier = Modifier
+                .clip(
+                    RoundedCornerShape(12.dp)
+                )
+                .clickable(onClick = onClick)
+                .sharedBounds(
+                    rememberSharedContentState(key = "task-${task.id}"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                    resizeMode = SharedTransitionScope.ResizeMode.RemeasureToBounds,
+                    renderInOverlayDuringTransition = true,
+                    enter = fadeIn(
+                        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh)),
+                    exit = fadeOut(
+                        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessHigh))
+                    )
+                .sharedElement(
+                    rememberSharedContentState("task-container-${task.id}"),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                )
+                .fillMaxWidth()
+                .background(TimestripeTheme.colorScheme.secondaryBackground, RoundedCornerShape(12.dp))
+                .padding(12.dp)
+                .then(
+                    modifier
+                )
+            ,
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+
+        ) {
+            CheckmarkIcon(
+                checked = task.isCompleted,
+                onClick = onCheck,
+                modifier = Modifier.size(20.dp)
+                    .sharedElement(
+                        rememberSharedContentState("task-checkmark-${task.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                    )
             )
-            .clickable(onClick = onClick)
-            .padding(12.dp)
-        ,
-        verticalAlignment = Alignment.Top,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        CheckmarkIcon(
-            checked = task.isCompleted,
-            onClick = onCheck,
-            modifier = Modifier.size(20.dp)
-        )
-        val textColor = if (task.isCompleted) {
-            TimestripeTheme.colorScheme.labelTertiary
-        } else {
-            TimestripeTheme.colorScheme.labelPrimary
+            val textColor = if (task.isCompleted) {
+                TimestripeTheme.colorScheme.labelTertiary
+            } else {
+                TimestripeTheme.colorScheme.labelPrimary
+            }
+            Text(
+                modifier = Modifier.weight(1f)
+                    .sharedElement(
+                        rememberSharedContentState("task-title-${task.id}"),
+                        animatedVisibilityScope = animatedVisibilityScope,
+                        placeHolderSize = animatedSize
+                    ),
+                text = task.title,
+                style = TimestripeTheme.typography.subheadline,
+                color = textColor,
+            )
         }
-        Text(
-            modifier = Modifier.weight(1f),
-            text = task.title,
-            style = TimestripeTheme.typography.subheadline,
-            color = textColor,
-        )
     }
 }
 
