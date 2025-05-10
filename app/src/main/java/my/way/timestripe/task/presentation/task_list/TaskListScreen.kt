@@ -11,11 +11,9 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -47,6 +45,7 @@ import kotlinx.coroutines.launch
 import my.way.timestripe.task.domain.model.Task
 import my.way.timestripe.task.presentation.task_list.component.CalendarPager
 import my.way.timestripe.task.presentation.task_list.component.NewTaskInputItem
+import my.way.timestripe.task.presentation.task_list.component.TaskDetailSheet
 import my.way.timestripe.task.presentation.task_list.component.TaskListItem
 import my.way.timestripe.task.presentation.task_list.component.TaskNavigationBar
 import my.way.timestripe.task.presentation.util.LocalAnimatedVisibilityScope
@@ -140,12 +139,10 @@ fun TaskListScreen(
                         newTask = state.newTask,
                         onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
                         onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
-                        onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                        onTaskClicked = { onAction(TaskListActions.SetSelectedTask(it)) },
                         onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
                         onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
                         onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
-                        isNewTaskFocused = state.isNewTaskShouldFocus,
-                        onNewTaskFocusChanged = { onAction(TaskListActions.SetNewTaskShouldFocus(it)) },
                         selectedDate = state.selectedDate,
                         modifier = Modifier.fillMaxSize(),
                         innerPadding = innerPadding,
@@ -197,18 +194,11 @@ fun TaskListScreen(
                                 newTask = state.newTask,
                                 onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
                                 onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
-                                onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                                onTaskClicked = { onAction(TaskListActions.SetSelectedTask(it)) },
                                 onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
                                 onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
                                 onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
-                                isNewTaskFocused = state.isNewTaskShouldFocus,
-                                onNewTaskFocusChanged = {
-                                    onAction(
-                                        TaskListActions.SetNewTaskShouldFocus(
-                                            it
-                                        )
-                                    )
-                                },
+
                                 selectedDate = date,
                                 innerPadding = innerPadding,
                                 selectedColumn = state.selectedColumn,
@@ -217,6 +207,19 @@ fun TaskListScreen(
                         }
                     )
                 }
+            }
+
+            if (state.selectedTask != null) {
+                TaskDetailSheet(
+                    task = state.selectedTask,
+                    onDismissRequest = { onAction(TaskListActions.UnsetSelectedTask) },
+                    modifier = Modifier.fillMaxSize(),
+                    onTaskTitleChanged = { onAction(TaskListActions.UpdateSelectedTaskTitle(it)) },
+                    onTaskDescriptionChanged = { onAction(TaskListActions.UpdateSelectedTaskDescription(it)) },
+                    onTaskCompletedToggle = { onAction(TaskListActions.ToggleSelectedTaskCompleted) },
+                    onTaskDueDateChanged = { onAction(TaskListActions.UpdateSelectedTaskDueDate(it)) },
+                    onTaskDeleted = { onAction(TaskListActions.DeleteSelectedTask) }
+                )
             }
         }
     }
@@ -339,8 +342,7 @@ fun TaskList(
     onTaskChecked: (Task) -> Unit,
     onSaveNewTask: () -> Unit,
     onDeleteTask: (Task) -> Unit,
-    isNewTaskFocused: Boolean,
-    onNewTaskFocusChanged: (Boolean) -> Unit,
+
     selectedDate: LocalDate?,
     innerPadding: PaddingValues,
     selectedColumn: Int,
@@ -358,7 +360,6 @@ fun TaskList(
                         onSaveNewTask()
                         keyboardController?.hide()
                         focusManager.clearFocus()
-                        onNewTaskFocusChanged(false)
                     }
                 )
             }
@@ -387,7 +388,6 @@ fun TaskList(
                         .padding(bottom = 12.dp)
                     ,
                     newTask = newTask,
-                    shouldFocus = isNewTaskFocused,
                     onValueChange = {
                         onNewTaskUpdate(
                             newTask.copy(title = it, dueDate = selectedDate)
@@ -396,7 +396,6 @@ fun TaskList(
                     onOpenClick = { },
                     onSaveNewTask = onSaveNewTask,
                     onNewTaskCheckToggle = { onNewTaskCheckToggle() },
-                    onShouldFocusChanged = onNewTaskFocusChanged,
                 )
             }
 

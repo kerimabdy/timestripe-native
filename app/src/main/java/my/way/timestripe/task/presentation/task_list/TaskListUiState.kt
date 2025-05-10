@@ -13,12 +13,12 @@ data class TaskListUiState(
     val tasksForLife: List<Task> = emptyList(),
     
     val newTask: Task = Task(title = ""),
+    val selectedTask: Task? = null,
+    
     val selectedDate: LocalDate = LocalDate.now(),
     val selectedColumn: Int = 1, // 1=Day, 2=Week, 3=Month, 4=Year, 5=Life
     val enabledColumns: Set<Int> = setOf(1, 2, 3, 4, 5),
     val isLoading: Boolean = false,
-    val selectedTask: Task? = null,
-    val isNewTaskShouldFocus: Boolean = false,
     
     // Properties for the horizontal pager
     val visibleDateRange: List<LocalDate> = emptyList(),

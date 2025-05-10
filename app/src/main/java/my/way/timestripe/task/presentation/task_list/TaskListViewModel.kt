@@ -72,10 +72,12 @@ class TaskListViewModel(
                 onSaveNewTask()
             }
 
-            is TaskListActions.SetNewTaskShouldFocus -> {
-                _uiState.update {
-                    it.copy(isNewTaskShouldFocus = action.shouldFocus)
-                }
+            is TaskListActions.SetSelectedTask -> {
+                onSetSelectedTask(action.task)
+            }
+
+            is TaskListActions.UnsetSelectedTask -> {
+                onUnsetSelectedTask()
             }
 
             is TaskListActions.ChangeColumn -> {
@@ -90,8 +92,62 @@ class TaskListViewModel(
             is TaskListActions.LoadTasksForDate -> {
                 onLoadTasksForDate(action.date)
             }
+
+            is TaskListActions.UpdateSelectedTaskTitle -> {
+                onUpdateSelectedTaskTitle(action.title)
+            }
+
+            is TaskListActions.UpdateSelectedTaskDescription -> {
+                onUpdateSelectedTaskDescription(action.description)
+            }
+
+            is TaskListActions.UpdateSelectedTaskDueDate -> {
+                onUpdateSelectedTaskDueDate(action.dueDate)
+            }   
+
+            is TaskListActions.DeleteSelectedTask -> {
+                onDeleteSelectedTask()
+            }
+
+            TaskListActions.ToggleSelectedTaskCompleted -> onToggleSelectedTaskCompleted()
         }
     }
+
+    private fun onSetSelectedTask(task: Task) {
+        _uiState.update { it.copy(selectedTask = task) }
+    }
+
+    private fun onUpdateSelectedTaskTitle(title: String) {
+        _uiState.update { it.copy(selectedTask = it.selectedTask?.copy(title = title) ?: it.selectedTask) }
+    }
+
+    private fun onUpdateSelectedTaskDescription(description: String) {
+        _uiState.update { it.copy(selectedTask = it.selectedTask?.copy(description = description) ?: it.selectedTask) }
+    }
+
+    private fun onUpdateSelectedTaskDueDate(dueDate: LocalDate) {
+        _uiState.update { it.copy(selectedTask = it.selectedTask?.copy(dueDate = dueDate) ?: it.selectedTask) }
+    }
+
+    private fun onToggleSelectedTaskCompleted() {
+        _uiState.update { it.copy(selectedTask = it.selectedTask?.copy(isCompleted = !it.selectedTask.isCompleted) ?: it.selectedTask) }
+    }
+
+    private fun onDeleteSelectedTask() {
+        viewModelScope.launch {
+            taskRepository.deleteTask(state.value.selectedTask ?: return@launch)
+            _uiState.update { it.copy(selectedTask = null) }
+        }
+    }
+    private fun onUnsetSelectedTask() {
+        viewModelScope.launch {
+            taskRepository.updateTask(state.value.selectedTask ?: return@launch)
+            _uiState.update { it.copy(selectedTask = null) }
+        }
+
+    }
+    
+    
 
     private fun onLoadTasksForDate(date: LocalDate) {
         viewModelScope.launch {

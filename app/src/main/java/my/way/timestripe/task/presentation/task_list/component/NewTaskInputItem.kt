@@ -48,12 +48,10 @@ import kotlinx.coroutines.launch
 @Composable
 fun NewTaskInputItem(
     newTask: Task,
-    shouldFocus: Boolean,
     onValueChange: (String) -> Unit,
     onOpenClick: () -> Unit,
     onNewTaskCheckToggle: () -> Unit,
     onSaveNewTask: () -> Unit,
-    onShouldFocusChanged: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
@@ -248,11 +246,9 @@ private fun NewTaskInputItemPreview() {
 
             NewTaskInputItem(
                 newTask = newTask,
-                shouldFocus = true,
                 onValueChange = { newTask = newTask.copy(title = it) },
                 onOpenClick = { },
                 onSaveNewTask = {},
-                onShouldFocusChanged = { },
                 onNewTaskCheckToggle = { },
             )
         }
