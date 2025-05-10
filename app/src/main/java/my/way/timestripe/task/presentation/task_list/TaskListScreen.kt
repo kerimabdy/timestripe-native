@@ -4,15 +4,23 @@ import androidx.compose.animation.AnimatedContentScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -30,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -77,14 +86,16 @@ fun getDateForPage(page: Int, startIndex: Int, referenceDate: LocalDate, column:
     return referenceDate.plusDays(dayOffset.toLong())
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class,
+    ExperimentalLayoutApi::class
+)
 @Composable
 fun TaskListScreen(
     state: TaskListUiState,
     modifier: Modifier = Modifier,
     onAction: (TaskListActions) -> Unit,
     sharedTransitionScope: SharedTransitionScope,
-    animatedContentScope: AnimatedContentScope
+    animatedContentScope: AnimatedContentScope,
 ) {
 
     CompositionLocalProvider(
@@ -92,110 +103,122 @@ fun TaskListScreen(
         LocalAnimatedVisibilityScope provides animatedContentScope
     ) {
         Scaffold(
-        modifier = modifier,
-        containerColor = TimestripeTheme.colorScheme.secondaryBackground,
-        contentColor = TimestripeTheme.colorScheme.labelPrimary,
-        topBar = {
-            TaskListAppBar(state.selectedDate, state.selectedColumn)
-        },
-        bottomBar = {
-            val coroutineScope = rememberCoroutineScope()
-            TaskNavigationBar(
-                selectedColumn = state.selectedColumn,
-                enabledColumns = state.enabledColumns,
-                onColumnSelected = {
-                    coroutineScope.launch {
-                        onAction(TaskListActions.ChangeColumn(it))
-                    }
-                }
-            )
-        },
-        floatingActionButton = {
-            AddTaskFloatingActionButton(
-                state.selectedDate,
-                { onAction(TaskListActions.AddTask(it)) })
-        }
-    ) { innerPadding ->
-        // Horizontal pager for date navigation
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            if (state.selectedColumn == COLUMN_LIFE) {
-                // For LIFE view, just show tasks without paging
-                TaskList(
-                    tasks = state.tasksForLife,
-                    newTask = state.newTask,
-                    onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
-                    onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
-                    onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
-                    onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
-                    onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
-                    onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
-                    isNewTaskFocused = state.isNewTaskShouldFocus,
-                    onNewTaskFocusChanged = { onAction(TaskListActions.SetNewTaskShouldFocus(it)) },
-                    selectedDate = state.selectedDate,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                // For time-based columns, use horizontal pager
-
-                val getNextDate = when (state.selectedColumn) {
-                    COLUMN_DAY -> { date: LocalDate -> date.plusDays(1) }
-                    COLUMN_WEEK -> { date: LocalDate -> date.plusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
-                    COLUMN_MONTH -> { date: LocalDate -> date.plusMonths(1).withDayOfMonth(1) }
-                    COLUMN_YEAR -> { date: LocalDate -> date.plusYears(1).withDayOfYear(1) }
-                    else -> { date: LocalDate -> date }
-                }
-                val getPreviousDate = when (state.selectedColumn) {
-                    COLUMN_DAY -> { date: LocalDate -> date.minusDays(1) }
-                    COLUMN_WEEK -> { date: LocalDate  -> date.minusWeeks(1).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
-                    COLUMN_MONTH -> { date: LocalDate -> date.minusMonths(1).withDayOfMonth(1) }
-                    COLUMN_YEAR -> { date: LocalDate -> date.minusYears(1).withDayOfYear(1) }
-                    else -> { date: LocalDate -> date }
-                }
-
-                CalendarPager(
-                    currentDate = state.selectedDate,
-                    getNextDate = getNextDate,
-                    getPreviousDate = getPreviousDate,
-                    onPageChanged = { onAction(TaskListActions.SetSelectedDate(it)) },
-                    itemContent = { date ->
-                        val normalizedDate = normalizeDate(date, state.selectedColumn)
-                        onAction(TaskListActions.LoadTasksForDate(normalizedDate))
-                        val tasks = when (state.selectedColumn) {
-                            COLUMN_DAY -> state.tasksForDay[normalizedDate] ?: emptyList()
-                            COLUMN_WEEK -> state.tasksForWeek[normalizedDate] ?: emptyList()
-                            COLUMN_MONTH -> state.tasksForMonth[normalizedDate] ?: emptyList()
-                            COLUMN_YEAR -> state.tasksForYear[normalizedDate] ?: emptyList()
-                            else -> emptyList()
+            modifier = modifier,
+            containerColor = TimestripeTheme.colorScheme.secondaryBackground,
+            contentColor = TimestripeTheme.colorScheme.labelPrimary,
+            topBar = {
+                TaskListAppBar(state.selectedDate, state.selectedColumn)
+            },
+            bottomBar = {
+                val coroutineScope = rememberCoroutineScope()
+                TaskNavigationBar(
+                    selectedColumn = state.selectedColumn,
+                    enabledColumns = state.enabledColumns,
+                    onColumnSelected = {
+                        coroutineScope.launch {
+                            onAction(TaskListActions.ChangeColumn(it))
                         }
-                        TaskList(
-                            tasks = tasks,
-                            newTask = state.newTask,
-                            onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
-                            onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
-                            onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
-                            onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
-                            onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
-                            onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
-                            isNewTaskFocused = state.isNewTaskShouldFocus,
-                            onNewTaskFocusChanged = {
-                                onAction(
-                                    TaskListActions.SetNewTaskShouldFocus(
-                                        it
-                                    )
-                                )
-                            },
-                            selectedDate = date,
-                            modifier = Modifier.fillMaxSize()
-                        )
                     }
                 )
+            },
+            floatingActionButton = {
+                AddTaskFloatingActionButton(
+                    state.selectedDate,
+                    { onAction(TaskListActions.AddTask(it)) })
+            }
+        ) { innerPadding ->
+            // Horizontal pager for date navigation
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+
+            ) {
+                if (state.selectedColumn == COLUMN_LIFE) {
+                    // For LIFE view, just show tasks without paging
+                    TaskList(
+                        tasks = state.tasksForLife,
+                        newTask = state.newTask,
+                        onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
+                        onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
+                        onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                        onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
+                        onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
+                        onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
+                        isNewTaskFocused = state.isNewTaskShouldFocus,
+                        onNewTaskFocusChanged = { onAction(TaskListActions.SetNewTaskShouldFocus(it)) },
+                        selectedDate = state.selectedDate,
+                        modifier = Modifier.fillMaxSize(),
+                        innerPadding = innerPadding,
+                        selectedColumn = state.selectedColumn,
+                    )
+                } else {
+                    // For time-based columns, use horizontal pager
+
+                    val getNextDate = when (state.selectedColumn) {
+                        COLUMN_DAY -> { date: LocalDate -> date.plusDays(1) }
+                        COLUMN_WEEK -> { date: LocalDate ->
+                            date.plusWeeks(1)
+                                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        }
+
+                        COLUMN_MONTH -> { date: LocalDate -> date.plusMonths(1).withDayOfMonth(1) }
+                        COLUMN_YEAR -> { date: LocalDate -> date.plusYears(1).withDayOfYear(1) }
+                        else -> { date: LocalDate -> date }
+                    }
+                    val getPreviousDate = when (state.selectedColumn) {
+                        COLUMN_DAY -> { date: LocalDate -> date.minusDays(1) }
+                        COLUMN_WEEK -> { date: LocalDate ->
+                            date.minusWeeks(1)
+                                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+                        }
+
+                        COLUMN_MONTH -> { date: LocalDate -> date.minusMonths(1).withDayOfMonth(1) }
+                        COLUMN_YEAR -> { date: LocalDate -> date.minusYears(1).withDayOfYear(1) }
+                        else -> { date: LocalDate -> date }
+                    }
+
+                    CalendarPager(
+                        currentDate = state.selectedDate,
+                        getNextDate = getNextDate,
+                        getPreviousDate = getPreviousDate,
+                        onPageChanged = { onAction(TaskListActions.SetSelectedDate(it)) },
+                        itemContent = { date ->
+                            val normalizedDate = normalizeDate(date, state.selectedColumn)
+                            onAction(TaskListActions.LoadTasksForDate(normalizedDate))
+                            val tasks = when (state.selectedColumn) {
+                                COLUMN_DAY -> state.tasksForDay[normalizedDate] ?: emptyList()
+                                COLUMN_WEEK -> state.tasksForWeek[normalizedDate] ?: emptyList()
+                                COLUMN_MONTH -> state.tasksForMonth[normalizedDate] ?: emptyList()
+                                COLUMN_YEAR -> state.tasksForYear[normalizedDate] ?: emptyList()
+                                else -> emptyList()
+                            }
+                            TaskList(
+                                tasks = tasks,
+                                newTask = state.newTask,
+                                onNewTaskUpdate = { onAction(TaskListActions.UpdateNewTask(it)) },
+                                onNewTaskCheckToggle = { onAction(TaskListActions.ToggleNewTaskCompleted) },
+                                onTaskClicked = { onAction(TaskListActions.NavigateToTaskDetail(it.id)) },
+                                onTaskChecked = { onAction(TaskListActions.ToggleTaskCompleted(it)) },
+                                onSaveNewTask = { onAction(TaskListActions.SaveNewTask) },
+                                onDeleteTask = { onAction(TaskListActions.DeleteTask(it)) },
+                                isNewTaskFocused = state.isNewTaskShouldFocus,
+                                onNewTaskFocusChanged = {
+                                    onAction(
+                                        TaskListActions.SetNewTaskShouldFocus(
+                                            it
+                                        )
+                                    )
+                                },
+                                selectedDate = date,
+                                innerPadding = innerPadding,
+                                selectedColumn = state.selectedColumn,
+                                modifier = Modifier.fillMaxSize(),
+                            )
+                        }
+                    )
+                }
             }
         }
-    }
     }
 }
 
@@ -204,7 +227,7 @@ fun TaskListScreen(
 @Composable
 private fun TaskListAppBar(
     selectedDate: LocalDate?,
-    selectedColumn: Int
+    selectedColumn: Int,
 ) {
     val formattedDate by remember(selectedDate, selectedColumn) {
         derivedStateOf {
@@ -265,7 +288,8 @@ fun getFormattedDateForDisplay(date: LocalDate?, column: Int): Pair<String, Stri
     return when (column) {
         COLUMN_DAY -> {
             val isToday = date.isEqual(LocalDate.now())
-            val dayOfWeek = if (isToday) "Today" else date.format(DateTimeFormatter.ofPattern("EEEE"))
+            val dayOfWeek =
+                if (isToday) "Today" else date.format(DateTimeFormatter.ofPattern("EEEE"))
             val dateFormat = if (isToday) {
                 date.format(DateTimeFormatter.ofPattern("EEE, d"))
             } else {
@@ -304,6 +328,7 @@ fun getFormattedDateForDisplay(date: LocalDate?, column: Int): Pair<String, Stri
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TaskList(
     tasks: List<Task>,
@@ -317,7 +342,9 @@ fun TaskList(
     isNewTaskFocused: Boolean,
     onNewTaskFocusChanged: (Boolean) -> Unit,
     selectedDate: LocalDate?,
-    modifier: Modifier = Modifier
+    innerPadding: PaddingValues,
+    selectedColumn: Int,
+    modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -337,8 +364,11 @@ fun TaskList(
             }
     ) {
         LazyColumn(
-            modifier = Modifier,
-            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+            modifier = Modifier
+                .padding(innerPadding)
+                .consumeWindowInsets(innerPadding)
+                .imePadding(),
+            contentPadding = PaddingValues(top = 12.dp, start = 8.dp, end = 8.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(tasks, key = { task -> task.id }) { task ->
@@ -351,8 +381,11 @@ fun TaskList(
                 )
             }
 
-            item {
+            item("new-input-$selectedColumn-$selectedDate") {
                 NewTaskInputItem(
+                    modifier = Modifier
+                        .padding(bottom = 12.dp)
+                    ,
                     newTask = newTask,
                     shouldFocus = isNewTaskFocused,
                     onValueChange = {
@@ -366,6 +399,7 @@ fun TaskList(
                     onShouldFocusChanged = onNewTaskFocusChanged,
                 )
             }
+
         }
     }
 }
@@ -373,9 +407,16 @@ fun TaskList(
 @Composable
 private fun AddTaskFloatingActionButton(
     selectedDate: LocalDate?,
-    onAddTask: (Task) -> Unit
+    onAddTask: (Task) -> Unit,
 ) {
+    val iDark = isSystemInDarkTheme()
+    val containerColor = if (iDark) Color.White else Color.Black
+    val contentColor = if (iDark) Color.Black else Color.White
     FloatingActionButton(
+        modifier = Modifier.size(40.dp),
+        containerColor = containerColor,
+        contentColor = contentColor,
+        shape = CircleShape,
         onClick = {
             onAddTask(
                 Task(

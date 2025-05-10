@@ -8,6 +8,8 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -40,6 +42,8 @@ import my.way.timestripe.task.domain.model.Task
 import my.way.timestripe.ui.theme.TimestripeTheme
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import kotlinx.coroutines.launch
 
 @Composable
 fun NewTaskInputItem(
@@ -56,30 +60,24 @@ fun NewTaskInputItem(
     val isFocused by interactionSource.collectIsFocusedAsState()
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val coroutineScope = rememberCoroutineScope()
 
-    var shouldKeepFocus by remember { mutableStateOf(false) }
-    
-    
-    // LaunchedEffect(shouldFocus) {
-    //     if (shouldFocus) {
-    //         focusRequester.requestFocus()
-    //     }
-    // }
-    
-    // LaunchedEffect(isFocused) {
-    //     onShouldFocusChanged(isFocused)
-    // }
-
-    LaunchedEffect(shouldKeepFocus) {
-        if (shouldKeepFocus) {
-            focusRequester.requestFocus()
-        }
-    }
 
     BasicTextField(
         value = newTask.title,
         onValueChange = onValueChange,
-        modifier = modifier.focusRequester(focusRequester),
+        modifier = Modifier
+            .bringIntoViewRequester(bringIntoViewRequester)
+            .onFocusChanged { focusState ->
+                if (focusState.isFocused) {
+                    coroutineScope.launch {
+                        bringIntoViewRequester.bringIntoView()
+                    }
+                }
+            }
+//            .focusRequester(focusRequester)
+            .then(modifier),
         textStyle = TimestripeTheme.typography.body
             .copy(
                 color = TimestripeTheme.colorScheme.labelPrimary
@@ -95,7 +93,10 @@ fun NewTaskInputItem(
             onNext = {
                 if (newTask.title.isNotBlank()) {
                     onSaveNewTask()
-                    shouldKeepFocus = false
+                    coroutineScope.launch {
+                        bringIntoViewRequester.bringIntoView()
+                    }
+
                 } else {
                     focusManager.clearFocus()
                 }
@@ -164,7 +165,7 @@ fun NewTaskInputItem(
 private fun Modifier.shadowWithClippingShadowLayer(
     elevation: Dp,
     shape: Shape = CircleShape,
-    spotColor: Color = DefaultShadowColor.copy(alpha = 0.25f) // More translucent spot shadow
+    spotColor: Color = DefaultShadowColor.copy(alpha = 0.25f), // More translucent spot shadow
 ): Modifier = this
     .drawWithCache {
         // Check if elevation is greater than 0
@@ -209,7 +210,7 @@ private fun Modifier.shadowWithClippingShadowLayer(
 @Composable
 private fun OpenButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -252,7 +253,7 @@ private fun NewTaskInputItemPreview() {
                 onOpenClick = { },
                 onSaveNewTask = {},
                 onShouldFocusChanged = { },
-                onNewTaskCheckToggle = {  },
+                onNewTaskCheckToggle = { },
             )
         }
     }
