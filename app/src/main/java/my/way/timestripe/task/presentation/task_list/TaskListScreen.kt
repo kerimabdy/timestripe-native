@@ -264,8 +264,13 @@ fun getFormattedDateForDisplay(date: LocalDate?, column: Int): Pair<String, Stri
 
     return when (column) {
         COLUMN_DAY -> {
-            val dayOfWeek = date.format(DateTimeFormatter.ofPattern("EEEE"))
-            val dateFormat = date.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
+            val isToday = date.isEqual(LocalDate.now())
+            val dayOfWeek = if (isToday) "Today" else date.format(DateTimeFormatter.ofPattern("EEEE"))
+            val dateFormat = if (isToday) {
+                date.format(DateTimeFormatter.ofPattern("EEE, d"))
+            } else {
+                date.format(DateTimeFormatter.ofPattern("MMMM d, yyyy"))
+            }
             Pair(dayOfWeek, dateFormat)
         }
 
