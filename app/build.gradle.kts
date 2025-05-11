@@ -77,4 +77,7 @@ dependencies {
 
     implementation(libs.androidx.navigation.compose)
 
+    implementation("androidx.glance:glance:1.1.1")
+    implementation("androidx.glance:glance-appwidget:1.1.1")
+
 }

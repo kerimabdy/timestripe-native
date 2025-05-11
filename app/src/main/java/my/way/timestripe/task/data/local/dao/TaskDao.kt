@@ -33,4 +33,9 @@ interface TaskDao {
 
     @Query("SELECT * FROM tasks WHERE column = 5 ORDER BY createdAt DESC")
     fun getLifeTasks(): Flow<List<TaskEntity>>
+
+
+    // getTasksByDateAndColumnForWidget
+    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt DESC")
+    suspend fun getTasksByDateAndColumnForWidget(baseDate: LocalDate, column: Int): List<TaskEntity>
 } 

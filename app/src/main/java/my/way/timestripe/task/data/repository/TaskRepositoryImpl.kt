@@ -83,4 +83,8 @@ class TaskRepositoryImpl(
         )
     }
 
+    override suspend fun getTasksByDateAndColumnForWidget(baseDate: LocalDate, column: Int): List<Task> {
+        return taskDao.getTasksByDateAndColumnForWidget(baseDate, column).map { it.toDomain() }
+    }
+
 } 

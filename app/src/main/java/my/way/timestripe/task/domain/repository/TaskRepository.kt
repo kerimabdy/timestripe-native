@@ -11,7 +11,8 @@ interface TaskRepository {
     suspend fun updateTask(task: Task)
     suspend fun deleteTask(task: Task)
     suspend fun deleteTaskById(taskId: Long)
+    suspend fun getTasksByDateAndColumnForWidget(baseDate: LocalDate, column: Int): List<Task>
     fun getTasksByDate(date: LocalDate): Flow<List<Task>>
     fun getTasksByDateAndColumn(baseDate: LocalDate, column: Int): Flow<List<Task>>
     fun getLifeTasks(): Flow<List<Task>>
-} 
+}
