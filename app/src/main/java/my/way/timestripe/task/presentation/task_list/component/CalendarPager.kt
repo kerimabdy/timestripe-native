@@ -146,7 +146,7 @@ fun CalendarPager(
                             val currentCameraOffset = offsetX.value
                             // Relative to the center of the 3-page strip (which is at -pageWidthPx for the camera)
                             val offsetFromCenterOfStrip = currentCameraOffset - (-pageWidthPx)
-                            val swipeThresholdPx = pageWidthPx * 0.2f // User's threshold
+                            val swipeThresholdPx = pageWidthPx * 0.1f // User's threshold
                             var pageVisualDelta = 0
 
                             if (abs(offsetFromCenterOfStrip) > swipeThresholdPx) {

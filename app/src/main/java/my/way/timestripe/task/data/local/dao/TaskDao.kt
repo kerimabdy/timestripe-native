@@ -7,13 +7,13 @@ import java.time.LocalDate
 
 @Dao
 interface TaskDao {
-    @Query("SELECT * FROM tasks ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks ORDER BY createdAt ASC")
     fun getAllTasks(): Flow<List<TaskEntity>>
 
     @Query("SELECT * FROM tasks WHERE id = :taskId")
     suspend fun getTaskById(taskId: Long): TaskEntity?
 
-    @Query("SELECT * FROM tasks WHERE date(dueDate) = date(:date) ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE date(dueDate) = date(:date) ORDER BY createdAt ASC")
     fun getTasksByDate(date: LocalDate): Flow<List<TaskEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -28,14 +28,14 @@ interface TaskDao {
     @Query("DELETE FROM tasks WHERE id = :taskId")
     suspend fun deleteTaskById(taskId: Long)
 
-    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt ASC")
     fun getTasksByDateAndColumn(baseDate: LocalDate, column: Int): Flow<List<TaskEntity>>
 
-    @Query("SELECT * FROM tasks WHERE column = 5 ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE column = 5 ORDER BY createdAt ASC")
     fun getLifeTasks(): Flow<List<TaskEntity>>
 
 
     // getTasksByDateAndColumnForWidget
-    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt DESC")
+    @Query("SELECT * FROM tasks WHERE dueDate = :baseDate AND column = :column ORDER BY createdAt ASC")
     suspend fun getTasksByDateAndColumnForWidget(baseDate: LocalDate, column: Int): List<TaskEntity>
 } 

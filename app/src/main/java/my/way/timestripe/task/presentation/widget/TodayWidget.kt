@@ -16,6 +16,8 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.action.actionStartActivity
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetReceiver
 import androidx.glance.appwidget.cornerRadius
@@ -38,8 +40,10 @@ import androidx.glance.layout.width
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
+import androidx.glance.text.TextDecoration
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import my.way.timestripe.MainActivity
 import my.way.timestripe.R
 import my.way.timestripe.task.domain.model.Task
 import my.way.timestripe.task.domain.repository.TaskRepository
@@ -257,12 +261,13 @@ fun TodayWidgetContent(
             .fillMaxSize()
             .background(ColorProvider(Color.White))
             .padding(16.dp)
+            .clickable(actionStartActivity<AddTaskActivity>())
     ) {
         DayInfo(
             modifier = GlanceModifier.fillMaxHeight().padding(end = 40.dp)
         )
         Column(
-            GlanceModifier.defaultWeight()
+            GlanceModifier.fillMaxHeight().defaultWeight()
         ) {
             TodayTaskList(tasks, GlanceModifier.defaultWeight())
             BottomBar(tasks.size)
@@ -339,7 +344,8 @@ fun TodayTaskListItem(
             style = TextStyle(
                 fontSize = TextUnit(12f, TextUnitType.Sp),
                 fontWeight = FontWeight.Medium,
-                color = ColorProvider(Color.Black),
+                color = if (task.isCompleted) ColorProvider(Color.Black.copy(alpha = .4f)) else ColorProvider(Color.Black),
+                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else TextDecoration.None
             )
         )
     }
@@ -385,7 +391,12 @@ private fun BottomBar(
         )
 
         Box(
-            modifier = GlanceModifier.size(28.dp).cornerRadius(14.dp).background(ColorProvider(Color.Black)),
+            modifier = GlanceModifier
+                .size(28.dp)
+                .cornerRadius(14.dp)
+                .background(ColorProvider(Color.Black))
+                .clickable(actionStartActivity<AddTaskActivity>())
+            ,
             contentAlignment = Alignment.Center
         ) {
             Image(
@@ -397,11 +408,10 @@ private fun BottomBar(
     }
 }
 
-val Gray3 = Color(0xFFC7C7CC)
+val Orange = Color(0xFFFF9500)
 val Blue = Color(0xFF007AFF)
 val Green = Color(0xFF34C759)
 val Indigo = Color(0xFF5856D6)
-val Orange = Color(0xFFFF9500)
 val Pink = Color(0xFFFF2D55)
 val Purple = Color(0xFFAF52DE)
 val Red = Color(0xFFFF3B30)
@@ -409,7 +419,7 @@ val Teal = Color(0xFF30B0C7)
 val Yellow = Color(0xFFFFCC00)
 val Brown = Color(0xFFA2845E)
 
-val colors = listOf(Gray3, Blue, Green, Indigo, Orange, Pink, Purple, Red, Teal, Yellow, Brown)
+val colors = listOf(Orange, Blue, Green, Indigo, Orange, Pink, Purple, Red, Teal, Yellow, Brown)
 
 class MyAppWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodayWidget()

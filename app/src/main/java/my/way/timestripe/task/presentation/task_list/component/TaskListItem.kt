@@ -34,6 +34,7 @@ import androidx.compose.animation.SharedTransitionScope.PlaceHolderSize.Companio
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,7 +59,10 @@ fun TaskListItem(
                 .clip(
                     RoundedCornerShape(12.dp)
                 )
-                .clickable(onClick = onClick)
+                .combinedClickable(
+                    onClick = onClick,
+                    onLongClick = onDelete
+                )
                 .sharedBounds(
                     rememberSharedContentState(key = "task-${task.id}"),
                     animatedVisibilityScope = animatedVisibilityScope,

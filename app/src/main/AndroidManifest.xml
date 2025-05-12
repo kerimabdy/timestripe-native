@@ -24,6 +24,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".task.presentation.widget.AddTaskActivity"
+            android:label="Hello"
+            android:theme="@style/Theme.TransparentActivity"
+            android:exported="false"/>
         <receiver android:name=".task.presentation.widget.MyAppWidgetReceiver"
             android:exported="true">
             <intent-filter>
